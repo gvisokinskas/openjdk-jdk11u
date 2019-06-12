@@ -471,7 +471,6 @@ synthesizeUnloadEvent(void *signatureVoid, void *envVoid)
     jbyte eventSessionID = currentSessionID;
     struct bag *eventBag = eventHelper_createEventBag();
 
-    /* TO DO: Report null error, but don't die */
     JDI_ASSERT(eventBag != NULL);
 
     /* Signature needs to last, so convert extra copy to
@@ -480,9 +479,7 @@ synthesizeUnloadEvent(void *signatureVoid, void *envVoid)
     classname = jvmtiAllocate((int)strlen(signature)+1);
     (void)strcpy(classname, signature);
     convertSignatureToClassname(classname);
-
     debugMonitorEnter(handlerLock);
-
     node = getHandlerChain(EI_GC_FINISH)->first;
     while (node != NULL) {
         /* save next so handlers can remove themselves */

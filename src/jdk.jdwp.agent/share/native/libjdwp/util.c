@@ -1741,31 +1741,6 @@ isMethodObsolete(jmethodID method)
     return obsolete;
 }
 
-/* Get the jvmti environment to be used with tags */
-static jvmtiEnv *
-getSpecialJvmti(void)
-{
-    jvmtiEnv  *jvmti;
-    jvmtiError error;
-    int        rc;
-
-    /* Get one time use JVMTI Env */
-    jvmtiCapabilities caps;
-
-    rc = JVM_FUNC_PTR(gdata->jvm,GetEnv)
-                     (gdata->jvm, (void **)&jvmti, JVMTI_VERSION_1);
-    if (rc != JNI_OK) {
-        return NULL;
-    }
-    (void)memset(&caps, 0, (int)sizeof(caps));
-    caps.can_tag_objects = 1;
-    error = JVMTI_FUNC_PTR(jvmti,AddCapabilities)(jvmti, &caps);
-    if ( error != JVMTI_ERROR_NONE ) {
-        return NULL;
-    }
-    return jvmti;
-}
-
 void
 writeCodeLocation(PacketOutputStream *out, jclass clazz,
                        jmethodID method, jlocation location)
@@ -2869,4 +2844,31 @@ objectReferrers(jobject obj, ObjectBatch *referrers, int maxObjects)
     /* Dispose of any special jvmti environment */
     (void)JVMTI_FUNC_PTR(jvmti,DisposeEnvironment)(jvmti);
     return error;
+}
+
+/* Get the jvmti environment to be used with tags
+ * ANDROID_CHANGED: Expose this function publicly for use with class-track and other places.
+ */
+jvmtiEnv *
+getSpecialJvmti(void)
+{
+    jvmtiEnv  *jvmti;
+    jvmtiError error;
+    int        rc;
+    /* Get one time use JVMTI Env */
+    jvmtiCapabilities caps;
+    // ANDROID-CHANGED: Always get a new jvmti-env using the same version as the main env. This
+    // means that everything will still work even when using a best-effort ArtTiEnv.
+    rc = JVM_FUNC_PTR(gdata->jvm,GetEnv)
+                     (gdata->jvm, (void **)&jvmti, jvmtiVersion());
+    if (rc != JNI_OK) {
+        return NULL;
+    }
+    (void)memset(&caps, 0, (int)sizeof(caps));
+    caps.can_tag_objects = 1;
+    error = JVMTI_FUNC_PTR(jvmti,AddCapabilities)(jvmti, &caps);
+    if ( error != JVMTI_ERROR_NONE ) {
+        return NULL;
+    }
+    return jvmti;
 }
